@@ -101,6 +101,66 @@ describe('Router', function() {
     });
   });
 
+  it('matches multiple routes', function(done) {
+    var app = koa();
+    var counter = 0;
+    app.use(Router(app));
+    app.get('/:lastname', function *(next) {
+      this.should.have.property('params');
+      this.params.should.have.property('lastname', 'smith');
+      this.status = 204;
+      counter += 2;
+
+      yield next;
+    });
+    app.get('/:surname', function *(next) {
+      this.should.have.property('params');
+      this.params.should.have.property('surname', 'smith');
+      this.status = 204;
+      counter++;
+
+      yield next;
+    });
+    var server = http.createServer(app.callback());
+      request(server)
+      .get('/smith')
+      .expect(204)
+      .end(function(err, res) {
+        if (err) return done(err);
+        counter.should.equal(3);
+        done();
+    });
+  });
+
+  it('matches only first route if it doesn\'t yield', function(done) {
+    var app = koa();
+    var counter = 0;
+    app.use(Router(app));
+    app.get('/:lastname', function *(next) {
+      this.should.have.property('params');
+      this.params.should.have.property('lastname', 'smith');
+      this.status = 204;
+      counter++;
+    });
+    app.get('/:surname', function *(next) {
+      this.should.have.property('params');
+      this.params.should.have.property('surname', 'smith');
+      this.status = 204;
+      counter++;
+
+      yield next;
+    });
+    var server = http.createServer(app.callback());
+      request(server)
+      .get('/smith')
+      .expect(204)
+      .end(function(err, res) {
+        if (err) return done(err);
+        counter.should.equal(1);
+        done();
+    });
+  });
+
   it('does not match after ctx.throw()', function(done) {
     var app = koa();
     var counter = 0;
